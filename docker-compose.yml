@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  oracle-db:
+    image: gvenzl/oracle-xe
+    container_name: oracle-xe
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PASSWORD: admin
+      APP_USER: pluralis
+      APP_USER_PASSWORD: admin
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM DUAL;' | sqlplus -s pluralis/admin@localhost/XE || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - pluralis-net
+
+  pluralis-app:
+    build: .
+    container_name: pluralis-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@oracle-db:1521/XE
+      SPRING_DATASOURCE_USERNAME: pluralis
+      SPRING_DATASOURCE_PASSWORD: admin
+    depends_on:
+      oracle-db:
+        condition: service_healthy
+    networks:
+      - pluralis-net
+
+networks:
+  pluralis-net:
+    driver: bridge
