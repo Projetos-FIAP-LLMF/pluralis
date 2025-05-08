@@ -20,7 +20,7 @@ public class TrainingController {
     public Training createTraining(@Valid @RequestBody TrainingDTO trainingDTO) {
         Training training = new Training();
         training.setName(trainingDTO.getName());
-        training.setDate(trainingDTO.getDate());
+        training.setTrainingDate(trainingDTO.getDate());
         training.setMandatory(trainingDTO.getMandatory());
 
         return trainingService.createTraining(training);

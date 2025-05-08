@@ -1,17 +1,15 @@
 package com.pluralis.pluralis.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Entity
 @Getter
 @Setter
+@Entity
+@Table(name = "anonymous_feedback")
 public class AnonymousFeedback {
 
     @Id
@@ -20,6 +18,6 @@ public class AnonymousFeedback {
 
     private String message;
 
-    private LocalDate sentDate = LocalDate.now();
-
+    @Column(name = "sent_date")
+    private LocalDate sentDate;
 }

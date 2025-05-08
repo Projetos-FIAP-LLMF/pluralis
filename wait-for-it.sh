@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
+# wait-for-it.sh
 
 host="$1"
-port="$2"
-shift 2
-echo "Aguardando $host:$port estar disponível..."
+shift
+port="$1"
+shift
+cmd="$@"
 
-while ! nc -z "$host" "$port"; do
-  echo "Ainda aguardando $host:$port..."
+until nc -z "$host" "$port"; do
+  echo "Esperando $host:$port estar disponível..."
   sleep 2
 done
 
-echo "$host:$port está disponível! Iniciando aplicação..."
-exec "$@"
+echo "$host:$port está disponível. Iniciando aplicação."
+exec $cmd

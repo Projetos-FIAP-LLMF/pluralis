@@ -1,9 +1,6 @@
 package com.pluralis.pluralis.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,6 +9,7 @@ import java.time.LocalDate;
 @Entity
 @Getter
 @Setter
+@Table(name = "trainings")
 public class Training {
 
     @Id
@@ -19,7 +17,10 @@ public class Training {
     private Long id;
 
     private String name;
-    private LocalDate date;
+
+    @Column(name = "training_date")
+    private LocalDate trainingDate;
+
     private Boolean mandatory;
 
 }

@@ -4,9 +4,10 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity
 @Getter
 @Setter
+@Entity
+@Table(name = "training_participations")
 public class TrainingParticipation {
 
     @Id
@@ -14,9 +15,11 @@ public class TrainingParticipation {
     private Long id;
 
     @ManyToOne
+    @JoinColumn(name = "employee_id")
     private Employee employee;
 
     @ManyToOne
+    @JoinColumn(name = "training_id")
     private Training training;
 
     private Boolean completed;

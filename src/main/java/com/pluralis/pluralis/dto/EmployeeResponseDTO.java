@@ -21,8 +21,8 @@ public class EmployeeResponseDTO {
         this.email = employee.getEmail();
         this.gender = employee.getGender();
         this.ethnicity = employee.getEthnicity();
-        this.neurodivergent = employee.isNeurodivergent();
-        this.lgbtqia = employee.isLgbtqia();
+        this.neurodivergent = employee.getNeurodivergent();
+        this.lgbtqia = employee.getLgbtqia();
     }
 }
 
