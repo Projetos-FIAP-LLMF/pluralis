@@ -13,7 +13,6 @@ public class AnonymousFeedbackService {
 
     public AnonymousFeedback submitFeedback(AnonymousFeedback feedback) {
         return feedbackRepository.save(feedback);
-        // TODO: arrumar pra gerar a data
     }
 }
 
