@@ -1,79 +1,92 @@
-# 🌱 Pluralis
 
-**Pluralis** é uma aplicação web desenvolvida com foco em soluções ESG (Environmental, Social and Governance), promovendo responsabilidade social, diversidade e bem-estar no ambiente corporativo.
+# 🌱 Pluralis — Inclusão, Diversidade & ESG com Impacto
 
----
+Pluralis é um sistema desenvolvido com alma e propósito: promover ambientes corporativos mais inclusivos, diversos e conscientes. Uma API RESTful pensada para monitorar treinamentos de inclusão, registrar feedbacks anônimos e gerar relatórios ESG que realmente transformam o cenário empresarial.
 
-## 🧭 Visão Geral
-
-A plataforma permite que empresas acompanhem e gerenciem indicadores importantes ligados à inclusão, sustentabilidade e governança de forma clara e intuitiva.
+> A inclusão não é um recurso opcional. É a base do futuro.
 
 ---
 
-## 🧠 Arquitetura
+## 📌 Tema ESG | ESG Topic
+**🇧🇷 Inclusão e diversidade corporativa**  
+**🇺🇸 Corporate inclusion and diversity**
 
-Este projeto utiliza o padrão **MVC (Model-View-Controller)** com as seguintes camadas principais:
-
-- **Controller:** Responsável por expor os endpoints REST e orquestrar as chamadas de serviço.
-- **DTO (Data Transfer Object):** Camada de transporte de dados entre controller e model, garantindo segurança e clareza.
-- **Model (Entity):** Representa as entidades persistidas no banco de dados.
-- **Repository:** Interface com o banco de dados via Spring Data JPA.
-- **Service:** Camada de negócio e regras de validação.
+- 📊 Relatórios sobre diversidade e presença feminina
+- 📚 Controle de treinamentos inclusivos obrigatórios
+- 🧠 Canal de feedback anônimo para ouvir quem importa
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🚀 Endpoints principais | Main Endpoints
 
-- Java 21
-- Spring Boot
-- Spring Data JPA
-- PostgreSQL
-- Lombok
-- Flyway (Migrações)
-- Swagger (Documentação da API)
-- JUnit / Mockito
-- Docker
+### 🔐 Autenticação | Authentication
+- `POST /auth/register` → Registrar novo usuário | Register new user
+- `POST /auth/login` → Autenticar e obter token JWT | Authenticate and receive JWT
+
+### 👥 Colaboradores | Employees
+- `GET /employees` → Listar todos os colaboradores
+- `POST /employees` → Criar novo colaborador
+
+### 🎓 Treinamentos | Trainings
+- `GET /trainings` → Listar treinamentos ativos
+- `POST /trainings` → Criar novo treinamento
+
+### 🏅 Participações | Participation Tracking
+- `GET /participations` → Listar todas as participações
+- `POST /participations` → Registrar participação
+
+### 💌 Feedback Anônimo | Anonymous Feedback
+- `GET /anonymous-feedback` → Ver feedbacks recebidos
+- `POST /anonymous-feedback` → Enviar novo feedback
+
+### 📄 Relatório ESG | ESG Report
+- `GET /inclusion-report` → Consultar relatórios ESG de inclusão
+- `POST /inclusion-report` → Criar novo relatório
 
 ---
 
-## 🚀 Como Rodar Localmente
+## 🛡️ Segurança | Security
+- JWT Token baseado em login com Spring Security
+- Headers com `Authorization: Bearer {token}`
+- Endpoints protegidos e seguros
+
+---
+
+## 🐳 Execução com Docker | Running with Docker
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/ORGANIZACAO/pluralis.git
-cd pluralis
-
-# 2. Suba os serviços com Docker
 docker-compose up --build
 ```
 
-> A aplicação estará disponível em: http://localhost:8080
+- Acesse: `http://localhost:8080`
+- Banco de dados Oracle: `localhost:1521`  
+  Usuário: `pluralis` | Senha: `oracle`
 
 ---
 
-## 🔎 Documentação da API
+## 🧠 Tecnologias | Tech Stack
+- 💛 Java 17 + Spring Boot 3
+- 🐬 Oracle Database
+- 🐳 Docker + Docker Compose
+- 💾 Flyway para migrações de banco
+- 🔐 Spring Security + JWT
 
-O Swagger está disponível em:
+---
 
-```
-http://localhost:8080/swagger-ui.html
-```
+## 💫 Desenvolvedoras | The Team
+
+✨ **Francine Maciel de Sá**  
+GitHub: [@francinemaaciel](https://github.com/francinemaaciel)  
+
+✨ **Myrella Uchoa**  
+GitHub: [@immyrella](https://github.com/immyrella)  
+
+✨ **Lauren V.**  
+GitHub: [@l44ver](https://github.com/l44ver)  
+
+✨ **Lu Ferdioly**  
+GitHub: [@LuFerdioly](https://github.com/LuFerdioly)  
 
 ---
 
-## ✅ Testes
-
-Para rodar os testes automatizados:
-
-```bash
-./mvnw test
-# ou
-./gradlew test
-```
-
----
-## 💡 Feito com propósito
-
-Construído para ajudar empresas a florescerem através da diversidade, ética e impacto social.
-
----
+> Feito com 💚 por mulheres que acreditam no poder do código e da mudança.

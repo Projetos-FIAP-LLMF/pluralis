@@ -1,7 +1,9 @@
 package com.pluralis.pluralis.dto;
 
 import com.pluralis.pluralis.model.Employee;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
