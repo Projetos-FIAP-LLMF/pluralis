@@ -1,0 +1,150 @@
+name: CI/CD Azure (docker-compose | Java 17)
+
+on:
+  push:
+    branches: [ main, develop ]   # main=prod, develop=staging
+  pull_request:
+
+env:
+  IMAGE_NAME: pluralis-app
+
+jobs:
+  build_test:
+    name: Build & Test (Gradle + Java 17)
+    runs-on: ubuntu-latest
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17 (Temurin) + Gradle cache
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Verify Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Build & Test
+        run: ./gradlew clean test --no-daemon
+
+  build_push_image:
+    name: Build JAR (17) & Push image to ACR
+    needs: build_test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+      acr_server: ${{ steps.acr.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build JAR (sem testes — já rodaram)
+        run: ./gradlew clean bootJar -x test --no-daemon
+
+      - name: Compute image tag (branch-sha)
+        id: meta
+        run: echo "version=${GITHUB_REF_NAME}-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get ACR login server
+        id: acr
+        run: |
+          ACR_SERVER=$(az acr show -n ${{ secrets.ACR_NAME }} --query loginServer -o tsv)
+          echo "server=$ACR_SERVER" >> $GITHUB_OUTPUT
+
+      - name: ACR docker login
+        run: az acr login -n ${{ secrets.ACR_NAME }}
+
+      - name: Build & Push image
+        run: |
+          docker build -t ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }} .
+          docker push ${{ steps.acr.outputs.server }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+
+  deploy:
+    name: Deploy docker-compose (staging/prod) no Azure
+    needs: build_push_image
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Resolve target (staging/prod)
+        id: env
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            echo "app=${{ secrets.AZURE_APP_PROD }}" >> $GITHUB_OUTPUT
+            echo "ds_user=${{ secrets.SPRING_DATASOURCE_USERNAME_PROD }}" >> $GITHUB_OUTPUT
+            echo "ds_pass=${{ secrets.SPRING_DATASOURCE_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
+            echo "jwt=${{ secrets.SECURITY_JWT_SECRET_PROD }}" >> $GITHUB_OUTPUT
+            echo "orapw=${{ secrets.ORACLE_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
+            echo "appuser=${{ secrets.APP_USER_PROD }}" >> $GITHUB_OUTPUT
+            echo "appuserpw=${{ secrets.APP_USER_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
+          else
+            echo "app=${{ secrets.AZURE_APP_STAGING }}" >> $GITHUB_OUTPUT
+            echo "ds_user=${{ secrets.SPRING_DATASOURCE_USERNAME_STG }}" >> $GITHUB_OUTPUT
+            echo "ds_pass=${{ secrets.SPRING_DATASOURCE_PASSWORD_STG }}" >> $GITHUB_OUTPUT
+            echo "jwt=${{ secrets.SECURITY_JWT_SECRET_STG }}" >> $GITHUB_OUTPUT
+            echo "orapw=${{ secrets.ORACLE_PASSWORD_STG }}" >> $GITHUB_OUTPUT
+            echo "appuser=${{ secrets.APP_USER_STG }}" >> $GITHUB_OUTPUT
+            echo "appuserpw=${{ secrets.APP_USER_PASSWORD_STG }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Render docker-compose.azure.yml (ACR + tag)
+        run: |
+          cp docker-compose.azure.yml docker-compose.rendered.yml
+          sed -i "s|\${ACR_LOGIN_SERVER}|${{ needs.build_push_image.outputs.acr_server }}|g" docker-compose.rendered.yml
+          sed -i "s|\${IMAGE_TAG}|${{ needs.build_push_image.outputs.image_tag }}|g" docker-compose.rendered.yml
+
+      - name: Set App Settings (envs do compose)
+        run: |
+          az webapp config appsettings set \
+            -g ${{ secrets.AZURE_RG }} \
+            -n ${{ steps.env.outputs.app }} \
+            --settings \
+              WEBSITES_ENABLE_APP_SERVICE_STORAGE=true \
+              ACR_LOGIN_SERVER=${{ needs.build_push_image.outputs.acr_server }} \
+              IMAGE_TAG=${{ needs.build_push_image.outputs.image_tag }} \
+              SPRING_DATASOURCE_USERNAME=${{ steps.env.outputs.ds_user }} \
+              SPRING_DATASOURCE_PASSWORD=${{ steps.env.outputs.ds_pass }} \
+              SECURITY_JWT_SECRET=${{ steps.env.outputs.jwt }} \
+              ORACLE_PASSWORD=${{ steps.env.outputs.orapw }} \
+              APP_USER=${{ steps.env.outputs.appuser }} \
+              APP_USER_PASSWORD=${{ steps.env.outputs.appuserpw }}
+
+      - name: Configure ACR creds (se não usar MSI)
+        run: |
+          az webapp config container set \
+            -g ${{ secrets.AZURE_RG }} \
+            -n ${{ steps.env.outputs.app }} \
+            --docker-registry-server-url https://${{ needs.build_push_image.outputs.acr_server }} \
+            --docker-registry-server-user ${{ secrets.ACR_USER }} \
+            --docker-registry-server-password ${{ secrets.ACR_PASSWORD }}
+
+      - name: Aplicar docker-compose
+        run: |
+          az webapp config container set \
+            -g ${{ secrets.AZURE_RG }} \
+            -n ${{ steps.env.outputs.app }} \
+            --multicontainer-config-type compose \
+            --multicontainer-config-file docker-compose.rendered.yml
+
+      - name: Restart Web App
+        run: az webapp restart -g ${{ secrets.AZURE_RG }} -n ${{ steps.env.outputs.app }}
