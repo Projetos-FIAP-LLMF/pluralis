@@ -15,7 +15,7 @@ services:
       - oracle-data:/opt/oracle/oradata
 
   pluralis-app:
-    image: ${REGISTRY}/pluralis-app:${TAG}   # ex.: docker.io/seuuser/pluralis-app:staging
+    image: ${REGISTRY}/pluralis-app:${TAG}
     container_name: pluralis-app
     depends_on:
       oracle-db:

@@ -1,18 +1,18 @@
-name: CI/CD - Pluralis (Compose via SSH)
+name: Continuous Delivery (Docker Hub → Azure Web App)
 
 on:
   push:
-    branches: [ master, develop ]
-  pull_request:
+    branches: [ develop, master ]
 
 env:
   IMAGE_NAME: pluralis-app
-  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
+  REGISTRY: index.docker.io
 
 jobs:
-  build_test:
-    name: Build & Test (Gradle + Java 17)
+  build_and_push:
+    name: Build (Gradle Java 17) + Docker Push
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -22,52 +22,26 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            .gradle/caches
-            .gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      - name: Permitir execução do gradlew
+      - name: Permissão gradlew
         run: chmod +x gradlew
 
-      - name: Build & Test
+      - name: Testes
         run: ./gradlew clean test --no-daemon
 
-  build_push_image:
-    name: Build JAR & Push Docker Image
-    needs: build_test
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.meta.outputs.TAG }}
-    steps:
-      - uses: actions/checkout@v4
+      - name: Build jar (sem testes)
+        run: ./gradlew bootJar -x test --no-daemon
 
-      - name: Setup Java 17 (Temurin)
-        uses: actions/setup-java@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Docker login (Docker Hub)
+        uses: docker/login-action@v3
         with:
-          distribution: temurin
-          java-version: '17'
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            .gradle/caches
-            .gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
-
-      - name: Permitir execução do gradlew
-        run: chmod +x gradlew
-
-      - name: Build JAR (sem testes)
-        run: ./gradlew clean bootJar -x test --no-daemon
-
-      - name: Definir TAG conforme branch
+      - name: Compute tags
         id: meta
         run: |
           if [ "${GITHUB_REF_NAME}" = "master" ]; then
@@ -75,64 +49,59 @@ jobs:
           else
             echo "TAG=staging" >> $GITHUB_OUTPUT
           fi
+          echo "SHA_TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "IMAGE=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-      - name: Login no Registry
-        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
-
-      - name: Build & Push da imagem
-        run: |
-          docker build -t ${{ secrets.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }} .
-          docker push ${{ secrets.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }}
-
-  deploy:
-    name: Deploy (Docker Compose via SSH)
-    needs: build_push_image
-    runs-on: ubuntu-latest
-    steps:
-      - name: Selecionar destino (staging/prod)
-        id: tgt
-        run: |
-          if [ "${GITHUB_REF_NAME}" = "master" ]; then
-            echo "HOST=${{ secrets.SSH_HOST_PROD }}" >> $GITHUB_OUTPUT
-            echo "USER=${{ secrets.SSH_USER_PROD }}" >> $GITHUB_OUTPUT
-            echo "KEY=${{ secrets.SSH_KEY_PROD }}"  >> $GITHUB_OUTPUT
-            echo "TAG=prod"  >> $GITHUB_OUTPUT
-          else
-            echo "HOST=${{ secrets.SSH_HOST_STG }}" >> $GITHUB_OUTPUT
-            echo "USER=${{ secrets.SSH_USER_STG }}" >> $GITHUB_OUTPUT
-            echo "KEY=${{ secrets.SSH_KEY_STG }}"  >> $GITHUB_OUTPUT
-            echo "TAG=staging"  >> $GITHUB_OUTPUT
-          fi
-
-      - name: Deploy remoto (pull & up)
-        uses: appleboy/ssh-action@v1
+      - name: Build & Push (tag por ambiente + SHA)
+        uses: docker/build-push-action@v6
         with:
-          host: ${{ steps.tgt.outputs.HOST }}
-          username: ${{ steps.tgt.outputs.USER }}
-          key: ${{ steps.tgt.outputs.KEY }}
-          script_stop: true
-          script: |
-            set -e
-            mkdir -p /opt/pluralis
-            cd /opt/pluralis
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.TAG }}
+            ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}
 
-            # Se o docker-compose.yml ainda não está no servidor, suba manualmente 1x
-            # (ou copie do repositório por SCP antes deste passo)
+  deploy_staging:
+    name: Deploy to Azure (staging - develop)
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'develop'
+    environment:
+      name: staging
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - name: Set image name
+        id: img
+        run: echo "FULL=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:staging" >> $GITHUB_OUTPUT
 
-            # Escrever/atualizar .env para o compose
-            cat > .env <<EOF
-            REGISTRY=${{ secrets.REGISTRY }}
-            TAG=${{ steps.tgt.outputs.TAG }}
-            SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
-            SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
-            SECURITY_JWT_SECRET=${{ secrets.SECURITY_JWT_SECRET }}
-            ORACLE_PASSWORD=${{ secrets.ORACLE_PASSWORD }}
-            APP_USER=${{ secrets.APP_USER }}
-            APP_USER_PASSWORD=${{ secrets.APP_USER_PASSWORD }}
-            EOF
+      - name: Deploy to Azure Web App (staging)
+        id: deploy
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_STG }}
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_STG }}
+          images: ${{ steps.img.outputs.FULL }}
 
-            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+  deploy_prod:
+    name: Deploy to Azure (production - master)
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'master'
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.webapp-url }}
+    steps:
+      - name: Set image name
+        id: img
+        run: echo "FULL=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:prod" >> $GITHUB_OUTPUT
 
-            docker compose pull
-            docker compose up -d --remove-orphans
-            docker image prune -f
+      - name: Deploy to Azure Web App (prod)
+        id: deploy
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_PROD }}
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_PROD }}
+          images: ${{ steps.img.outputs.FULL }}
