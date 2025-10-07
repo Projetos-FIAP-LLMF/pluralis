@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew clean test --no-daemon
 
   build_push_image:
-    name: Build JAR (Gradle 17) & Push image to ACR
+    name: Build JAR & Push image to ACR
     needs: build_test
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -49,6 +49,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
+      - name: Grant execute permission for Gradle Wrapper
+        run: chmod +x gradlew
 
       - name: Build JAR (sem testes — já rodaram)
         run: ./gradlew clean bootJar -x test --no-daemon
