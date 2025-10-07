@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   oracle-db:
@@ -13,22 +13,18 @@ services:
       APP_USER_PASSWORD: ${APP_USER_PASSWORD}
     volumes:
       - oracle-data:/opt/oracle/oradata
-    healthcheck:
-      test: ["CMD", "bash", "-c", "echo 'SELECT 1 FROM dual;' | sqlplus -s ${SPRING_DATASOURCE_USERNAME}/${SPRING_DATASOURCE_PASSWORD}@//localhost:1521/FREEPDB1"]
-      interval: 30s
-      timeout: 10s
-      retries: 10
 
   pluralis-app:
-    build:
-      context: .
+    image: ${REGISTRY}/pluralis-app:${TAG}   # ex.: docker.io/seuuser/pluralis-app:staging
     container_name: pluralis-app
     depends_on:
       oracle-db:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "8080:8080"
     env_file: .env
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-db:1521/FREEPDB1
 
 volumes:
   oracle-data:

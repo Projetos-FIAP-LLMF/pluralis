@@ -1,8 +1,9 @@
-name: CI/CD via ACR (compose auto-deploy)
+name: CI/CD - Pluralis (Compose via SSH)
 
 on:
   push:
     branches: [ master, develop ]
+  pull_request:
 
 env:
   IMAGE_NAME: pluralis-app
@@ -10,11 +11,12 @@ env:
 
 jobs:
   build_test:
+    name: Build & Test (Gradle + Java 17)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -29,19 +31,22 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Permissão gradlew
+      - name: Permitir execução do gradlew
         run: chmod +x gradlew
 
       - name: Build & Test
         run: ./gradlew clean test --no-daemon
 
-  build_push:
+  build_push_image:
+    name: Build JAR & Push Docker Image
     needs: build_test
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.TAG }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -56,14 +61,14 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      - name: Permissão gradlew
+      - name: Permitir execução do gradlew
         run: chmod +x gradlew
 
-      - name: Build JAR
+      - name: Build JAR (sem testes)
         run: ./gradlew clean bootJar -x test --no-daemon
 
-      - name: Define ambiente (staging/prod)
-        id: env
+      - name: Definir TAG conforme branch
+        id: meta
         run: |
           if [ "${GITHUB_REF_NAME}" = "master" ]; then
             echo "TAG=prod" >> $GITHUB_OUTPUT
@@ -71,10 +76,63 @@ jobs:
             echo "TAG=staging" >> $GITHUB_OUTPUT
           fi
 
-      - name: Login no ACR
-        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+      - name: Login no Registry
+        run: echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
 
-      - name: Build e Push da imagem
+      - name: Build & Push da imagem
         run: |
-          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.env.outputs.TAG }} .
-          docker push ${{ secrets.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ steps.env.outputs.TAG }}
+          docker build -t ${{ secrets.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }} .
+          docker push ${{ secrets.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.TAG }}
+
+  deploy:
+    name: Deploy (Docker Compose via SSH)
+    needs: build_push_image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Selecionar destino (staging/prod)
+        id: tgt
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then
+            echo "HOST=${{ secrets.SSH_HOST_PROD }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.SSH_USER_PROD }}" >> $GITHUB_OUTPUT
+            echo "KEY=${{ secrets.SSH_KEY_PROD }}"  >> $GITHUB_OUTPUT
+            echo "TAG=prod"  >> $GITHUB_OUTPUT
+          else
+            echo "HOST=${{ secrets.SSH_HOST_STG }}" >> $GITHUB_OUTPUT
+            echo "USER=${{ secrets.SSH_USER_STG }}" >> $GITHUB_OUTPUT
+            echo "KEY=${{ secrets.SSH_KEY_STG }}"  >> $GITHUB_OUTPUT
+            echo "TAG=staging"  >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy remoto (pull & up)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ steps.tgt.outputs.HOST }}
+          username: ${{ steps.tgt.outputs.USER }}
+          key: ${{ steps.tgt.outputs.KEY }}
+          script_stop: true
+          script: |
+            set -e
+            mkdir -p /opt/pluralis
+            cd /opt/pluralis
+
+            # Se o docker-compose.yml ainda não está no servidor, suba manualmente 1x
+            # (ou copie do repositório por SCP antes deste passo)
+
+            # Escrever/atualizar .env para o compose
+            cat > .env <<EOF
+            REGISTRY=${{ secrets.REGISTRY }}
+            TAG=${{ steps.tgt.outputs.TAG }}
+            SPRING_DATASOURCE_USERNAME=${{ secrets.SPRING_DATASOURCE_USERNAME }}
+            SPRING_DATASOURCE_PASSWORD=${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+            SECURITY_JWT_SECRET=${{ secrets.SECURITY_JWT_SECRET }}
+            ORACLE_PASSWORD=${{ secrets.ORACLE_PASSWORD }}
+            APP_USER=${{ secrets.APP_USER }}
+            APP_USER_PASSWORD=${{ secrets.APP_USER_PASSWORD }}
+            EOF
+
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ secrets.REGISTRY }} -u ${{ secrets.REGISTRY_USERNAME }} --password-stdin
+
+            docker compose pull
+            docker compose up -d --remove-orphans
+            docker image prune -f
