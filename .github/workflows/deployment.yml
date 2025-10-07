@@ -2,7 +2,7 @@ name: CI/CD Azure (docker-compose | Java 17 + Gradle)
 
 on:
   push:
-    branches: [ master ]
+    branches: [ master, develop ]   # master=prod, develop=staging
   pull_request:
 
 env:
@@ -22,6 +22,9 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: gradle
+
+      - name: Grant execute permission for Gradle Wrapper
+        run: chmod +x gradlew
 
       - name: Verify Gradle Wrapper
         uses: gradle/wrapper-validation-action@v2
@@ -89,7 +92,7 @@ jobs:
       - name: Resolve target (staging/prod)
         id: env
         run: |
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then
             echo "app=${{ secrets.AZURE_APP_PROD }}" >> $GITHUB_OUTPUT
             echo "ds_user=${{ secrets.SPRING_DATASOURCE_USERNAME_PROD }}" >> $GITHUB_OUTPUT
             echo "ds_pass=${{ secrets.SPRING_DATASOURCE_PASSWORD_PROD }}" >> $GITHUB_OUTPUT
