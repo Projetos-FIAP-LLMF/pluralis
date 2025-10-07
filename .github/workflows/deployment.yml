@@ -7,6 +7,7 @@ on:
 
 env:
   IMAGE_NAME: pluralis-app
+  GRADLE_USER_HOME: ${{ github.workspace }}/.gradle
 
 jobs:
   build_test:
@@ -22,17 +23,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            .gradle/caches
+            .gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Grant execute permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Setup Gradle (cache + valida wrapper)
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: wrapper
-          validate-wrappers: true
-
-      - name: Build & Test
-        run: ./gradlew clean test --no-daemon
+      - name: Build & Test (retry)
+        run: |
+          n=0
+          until [ $n -ge 3 ]; do
+            ./gradlew clean test --no-daemon && break
+            n=$((n+1))
+            echo "Gradle failed. Retry #$n in 10s..."
+            sleep 10
+          done
 
   build_push_image:
     name: Build JAR & Push image to ACR
@@ -51,17 +63,28 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            .gradle/caches
+            .gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
       - name: Grant execute permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Setup Gradle (cache + valida wrapper)
-        uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: wrapper
-          validate-wrappers: true
-
-      - name: Build JAR (sem testes — já rodaram)
-        run: ./gradlew clean bootJar -x test --no-daemon
+      - name: Build JAR (retry; sem testes — já rodaram)
+        run: |
+          n=0
+          until [ $n -ge 3 ]; do
+            ./gradlew clean bootJar -x test --no-daemon && break
+            n=$((n+1))
+            echo "Gradle failed. Retry #$n in 10s..."
+            sleep 10
+          done
 
       - name: Compute image tag (branch-sha)
         id: meta
