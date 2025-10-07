@@ -1,8 +1,8 @@
-name: CI/CD Azure (docker-compose | Java 17)
+name: CI/CD Azure (docker-compose | Java 17 + Gradle)
 
 on:
   push:
-    branches: [ main, develop ]   # main=prod, develop=staging
+    branches: [ master ]
   pull_request:
 
 env:
@@ -30,7 +30,7 @@ jobs:
         run: ./gradlew clean test --no-daemon
 
   build_push_image:
-    name: Build JAR (17) & Push image to ACR
+    name: Build JAR (Gradle 17) & Push image to ACR
     needs: build_test
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
@@ -40,7 +40,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (Temurin) + Gradle cache
         uses: actions/setup-java@v4
         with:
           distribution: temurin
