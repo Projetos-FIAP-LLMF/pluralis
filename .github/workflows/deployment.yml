@@ -16,18 +16,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17 (Temurin) + Gradle cache
+      - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Grant execute permission for Gradle Wrapper
         run: chmod +x gradlew
 
-      - name: Verify Gradle Wrapper
-        uses: gradle/wrapper-validation-action@v2
+      - name: Setup Gradle (cache + valida wrapper)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          validate-wrappers: true
 
       - name: Build & Test
         run: ./gradlew clean test --no-daemon
@@ -43,15 +45,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Java 17 (Temurin) + Gradle cache
+      - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
       - name: Grant execute permission for Gradle Wrapper
         run: chmod +x gradlew
+
+      - name: Setup Gradle (cache + valida wrapper)
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: wrapper
+          validate-wrappers: true
 
       - name: Build JAR (sem testes — já rodaram)
         run: ./gradlew clean bootJar -x test --no-daemon
