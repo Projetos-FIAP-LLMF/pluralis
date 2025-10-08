@@ -24,7 +24,7 @@ services:
       - "8080:8080"
     env_file: .env
     environment:
-      SPRING_DATASOURCE_URL: jdbc:oracle:thin:@//oracle-db:1521/FREEPDB1
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
 
 volumes:
   oracle-data:
