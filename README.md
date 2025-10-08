@@ -18,35 +18,35 @@ Pluralis é um sistema desenvolvido com alma e propósito: promover ambientes co
 
 ---
 
-## 🚀 Endpoints principais | Main Endpoints
+### 🚀 Endpoints principais | Main Endpoints
 
-### 🔐 Autenticação | Authentication
+#### 🔐 Autenticação | Authentication
 - `POST /auth/register` → Registrar novo usuário | Register new user
 - `POST /auth/login` → Autenticar e obter token JWT | Authenticate and receive JWT
 
-### 👥 Colaboradores | Employees
+#### 👥 Colaboradores | Employees
 - `GET /employees` → Listar todos os colaboradores
 - `POST /employees` → Criar novo colaborador
 
-### 🎓 Treinamentos | Trainings
+#### 🎓 Treinamentos | Trainings
 - `GET /trainings` → Listar treinamentos ativos
 - `POST /trainings` → Criar novo treinamento
 
-### 🏅 Participações | Participation Tracking
+#### 🏅 Participações | Participation Tracking
 - `GET /participations` → Listar todas as participações
 - `POST /participations` → Registrar participação
 
-### 💌 Feedback Anônimo | Anonymous Feedback
+#### 💌 Feedback Anônimo | Anonymous Feedback
 - `GET /anonymous-feedback` → Ver feedbacks recebidos
 - `POST /anonymous-feedback` → Enviar novo feedback
 
-### 📄 Relatório ESG | ESG Report
+#### 📄 Relatório ESG | ESG Report
 - `GET /inclusion-report` → Consultar relatórios ESG de inclusão
 - `POST /inclusion-report` → Criar novo relatório
 
 ---
 
-## 🛡️ Segurança | Security
+### 🛡️ Segurança | Security
 - JWT Token baseado em login com Spring Security
 - Headers com `Authorization: Bearer {token}`
 - Endpoints protegidos e seguros
@@ -62,6 +62,18 @@ docker-compose up --build
 - Acesse: `http://localhost:8080`
 - Banco de dados Oracle: `localhost:1521`  
   Usuário: `pluralis` | Senha: `oracle`
+
+---
+
+## ⚙️ Pipeline CI/CD
+
+---
+
+## 📦 Containerização
+
+---
+
+## 📱 Prints do Funcionamento
 
 ---
 
@@ -82,10 +94,10 @@ GitHub: [@francinemaaciel](https://github.com/francinemaaciel)
 ✨ **Myrella Uchoa**  
 GitHub: [@immyrella](https://github.com/immyrella)  
 
-✨ **Lauren V.**  
+✨ **Lauren Vasconcelos**  
 GitHub: [@l44ver](https://github.com/l44ver)  
 
-✨ **Lu Ferdioly**  
+✨ **Luciana Ferdioly**  
 GitHub: [@LuFerdioly](https://github.com/LuFerdioly)  
 
 ---
