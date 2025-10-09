@@ -8,11 +8,14 @@ env:
   IMAGE_NAME: pluralis-app
   REGISTRY: docker.io
 
-jobs:
-  build_and_push:
-    name: Build (Gradle Java 17) + Docker Push
-    runs-on: ubuntu-latest
+concurrency:
+  group: cd-${{ github.ref_name }}
+  cancel-in-progress: true
 
+jobs:
+  test:
+    name: 1) Tests (Gradle Java 17)
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -21,12 +24,34 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+          cache: 'gradle'
 
       - name: Permissão gradlew
         run: chmod +x gradlew
 
-      - name: Testes
+      - name: Run tests
         run: ./gradlew clean test --no-daemon
+
+  build_push:
+    name: 2) Build & Push Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      image_repo: ${{ steps.meta.outputs.IMAGE }}
+      sha_tag: ${{ steps.meta.outputs.SHA_TAG }}
+      env_tag: ${{ steps.meta.outputs.TAG }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Permissão gradlew
+        run: chmod +x gradlew
 
       - name: Build jar (sem testes)
         run: ./gradlew bootJar -x test --no-daemon
@@ -52,7 +77,7 @@ jobs:
           echo "SHA_TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           echo "IMAGE=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-      - name: Build & Push (tag por ambiente + SHA)
+      - name: Build & Push (env tag + SHA)
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -63,39 +88,40 @@ jobs:
             ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}
 
   deploy_staging:
-    name: Deploy to Azure (staging - develop)
-    needs: build_and_push
-    runs-on: ubuntu-latest
+    name: 3) Deploy to Azure (staging / QA)
+    needs: build_push
     if: github.ref_name == 'develop'
+    runs-on: ubuntu-latest
     environment:
       name: staging
-      url: ${{ steps.deploy.outputs.webapp-url }}
     steps:
-      - name: Set image name
+      - name: Set image name (staging)
         id: img
-        run: echo "FULL=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:staging" >> $GITHUB_OUTPUT
+        run: echo "FULL=${{ needs.build_push.outputs.image_repo }}:staging" >> $GITHUB_OUTPUT
 
       - name: Deploy to Azure Web App (staging)
         id: deploy
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME_STG }}
-          slot-name: 'production'
+          slot-name: 'staging'
           publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_STG }}
           images: ${{ steps.img.outputs.FULL }}
 
+      - name: Output URL
+        run: echo "Staging deployed with image ${{ steps.img.outputs.FULL }}"
+
   deploy_prod:
-    name: Deploy to Azure (production - master)
-    needs: build_and_push
-    runs-on: ubuntu-latest
+    name: 4) Deploy to Azure (production)
+    needs: build_push
     if: github.ref_name == 'master'
+    runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.webapp-url }}
     steps:
-      - name: Set image name
+      - name: Set image name (prod)
         id: img
-        run: echo "FULL=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:prod" >> $GITHUB_OUTPUT
+        run: echo "FULL=${{ needs.build_push.outputs.image_repo }}:prod" >> $GITHUB_OUTPUT
 
       - name: Deploy to Azure Web App (prod)
         id: deploy
@@ -105,3 +131,6 @@ jobs:
           slot-name: 'production'
           publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_PROD }}
           images: ${{ steps.img.outputs.FULL }}
+
+      - name: Output URL
+        run: echo "Prod deployed with image ${{ steps.img.outputs.FULL }}"
