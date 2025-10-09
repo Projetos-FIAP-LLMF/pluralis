@@ -67,13 +67,53 @@ docker-compose up --build
 
 ## ⚙️ Pipeline CI/CD
 
+### Ferramenta Utilizada
+
+**GitHub Actions** - Plataforma de CI/CD integrada ao GitHub para automação de workflows.
+
+### Etapas do Pipeline
+
+#### 1. **Build e Push (Job: build_and_push)**
+
+- **Checkout do código:** Clona o repositório
+- **Setup Java 17:** Configura ambiente Java com Temurin
+- **Permissões:** Configura executável do Gradle wrapper
+- **Testes:** Executa testes automatizados com `./gradlew clean test`
+- **Build:** Gera o arquivo JAR com `./gradlew bootJar -x test`
+- **Docker Build:** Constrói a imagem Docker da aplicação
+- **Docker Push:** Envia imagem para Docker Hub com tags por ambiente
+
+#### 2. **Deploy Staging (Job: deploy_staging)**
+
+- Executa apenas quando há push na branch `develop`
+- Deploy automático no Azure Web App de staging
+- Utiliza imagem com tag `staging`
+
+#### 3. **Deploy Produção (Job: deploy_prod)**
+
+- Executa apenas quando há push na branch `master`
+- Deploy automático no Azure Web App de produção
+- Utiliza imagem com tag `prod`
+
+### Lógica do Pipeline
+
+**Gatilhos:**
+
+- Push nas branches `develop` (staging) ou `master` (produção)
+
+**Estratégia de Tagging:**
+
+- Branch `develop` → tag `staging`
+- Branch `master` → tag `prod`
+- Todas as builds também recebem tag com SHA do commit (7 caracteres)
+
 ---
 
-## 📦 Containerização
+## 📦 Containerização | Containerization
 
 ---
 
-## 📱 Prints do Funcionamento
+## 📱 Prints do Funcionamento | Operation Prints
 
 ---
 
