@@ -12,35 +12,35 @@ Pluralis é um sistema desenvolvido com alma e propósito: promover ambientes co
 **🇧🇷 Inclusão e diversidade corporativa**  
 **🇺🇸 Corporate inclusion and diversity**
 
-- 📊 Relatórios sobre diversidade e presença feminina
-- 📚 Controle de treinamentos inclusivos obrigatórios
-- 🧠 Canal de feedback anônimo para ouvir quem importa
+- Relatórios sobre diversidade e presença feminina
+- Controle de treinamentos inclusivos obrigatórios
+- Canal de feedback anônimo para ouvir quem importa
 
 ---
 
 ### 🚀 Endpoints principais | Main Endpoints
 
-#### 🔐 Autenticação | Authentication
+#### Autenticação | Authentication
 - `POST /auth/register` → Registrar novo usuário | Register new user
 - `POST /auth/login` → Autenticar e obter token JWT | Authenticate and receive JWT
 
-#### 👥 Colaboradores | Employees
+#### Colaboradores | Employees
 - `GET /employees` → Listar todos os colaboradores
 - `POST /employees` → Criar novo colaborador
 
-#### 🎓 Treinamentos | Trainings
+#### Treinamentos | Trainings
 - `GET /trainings` → Listar treinamentos ativos
 - `POST /trainings` → Criar novo treinamento
 
-#### 🏅 Participações | Participation Tracking
+#### Participações | Participation Tracking
 - `GET /participations` → Listar todas as participações
 - `POST /participations` → Registrar participação
 
-#### 💌 Feedback Anônimo | Anonymous Feedback
+#### Feedback Anônimo | Anonymous Feedback
 - `GET /anonymous-feedback` → Ver feedbacks recebidos
 - `POST /anonymous-feedback` → Enviar novo feedback
 
-#### 📄 Relatório ESG | ESG Report
+#### Relatório ESG | ESG Report
 - `GET /inclusion-report` → Consultar relatórios ESG de inclusão
 - `POST /inclusion-report` → Criar novo relatório
 
@@ -65,24 +65,97 @@ docker-compose up --build
 
 ---
 
-## ⚙️ Pipeline CI/CD
+## 🔄 Pipeline CI/CD
+
+### Ferramenta Utilizada
+
+**GitHub Actions** - Plataforma de CI/CD integrada ao GitHub para automação de workflows.
+
+### Etapas do Pipeline
+
+#### 1. **Build e Push (Job: build_and_push)**
+
+- **Checkout do código:** Clona o repositório
+- **Setup Java 17:** Configura ambiente Java com Temurin
+- **Permissões:** Configura executável do Gradle wrapper
+- **Testes:** Executa testes automatizados com `./gradlew clean test`
+- **Build:** Gera o arquivo JAR com `./gradlew bootJar -x test`
+- **Docker Build:** Constrói a imagem Docker da aplicação
+- **Docker Push:** Envia imagem para Docker Hub com tags por ambiente
+
+#### 2. **Deploy Staging (Job: deploy_staging)**
+
+- Executa apenas quando há push na branch `develop`
+- Deploy automático no Azure Web App de staging
+- Utiliza imagem com tag `staging`
+
+#### 3. **Deploy Produção (Job: deploy_prod)**
+
+- Executa apenas quando há push na branch `master`
+- Deploy automático no Azure Web App de produção
+- Utiliza imagem com tag `prod`
+
+### Lógica do Pipeline
+
+**Gatilhos:**
+
+- Push nas branches `develop` (staging) ou `master` (produção)
+
+**Estratégia de Tagging:**
+
+- Branch `develop` → tag `staging`
+- Branch `master` → tag `prod`
+- Todas as builds também recebem tag com SHA do commit (7 caracteres)
 
 ---
 
-## 📦 Containerização
+## 📦 Containerização | Containerization
+
+```bash
+# Dockerfile.azure
+FROM openjdk:21-jdk-slim
+
+WORKDIR /app
+
+COPY build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java","-jar","app.jar"]
+```
+
+### Estratégias Adotadas
+
+#### 1. Imagem Base Otimizada
+openjdk:21-jdk-slim: Utilizamos a versão slim do OpenJDK 21, reduzindo significativamente o tamanho da imagem final e eliminando dependências desnecessárias
+
+#### 2. Estrutura de Diretórios
+WORKDIR /app: Define um diretório de trabalho organizado para a aplicação, isolando os arquivos do sistema
+
+#### 3. Cópia Eficiente do Artefato
+COPY build/libs/*.jar app.jar: Copia o JAR gerado pelo build do Gradle com um nome padronizado, facilitando o comando de execução
+
+#### 4. Exposição de Porta
+EXPOSE 8080: Documenta que a aplicação estará ouvindo na porta 8080, padrão do Spring Boot
+
+#### 5. Entrypoint Otimizado
+ENTRYPOINT ["java","-jar","app.jar"]: Configura o comando padrão para execução da aplicação, garantindo inicialização consistente
+
+#### 6. Multi-stage para Azure
+O arquivo é nomeado como Dockerfile.azure, indicando uma configuração específica para deploy na Azure, permitindo diferentes configurações por ambiente
 
 ---
 
-## 📱 Prints do Funcionamento
+## 📱 Prints do Funcionamento | Operation Prints
 
 ---
 
 ## 🧠 Tecnologias | Tech Stack
-- 💛 Java 17 + Spring Boot 3
-- 🐬 Oracle Database
-- 🐳 Docker + Docker Compose
-- 💾 Flyway para migrações de banco
-- 🔐 Spring Security + JWT
+- Java 17 + Spring Boot 3
+- Oracle Database
+- Docker + Docker Compose
+- Flyway para migrações de banco
+- Spring Security + JWT
 
 ---
 
