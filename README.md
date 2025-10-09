@@ -111,6 +111,39 @@ docker-compose up --build
 
 ## 📦 Containerização | Containerization
 
+```bash
+# Dockerfile.azure
+FROM openjdk:21-jdk-slim
+
+WORKDIR /app
+
+COPY build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java","-jar","app.jar"]
+```
+
+### Estratégias Adotadas
+
+#### 1. Imagem Base Otimizada
+openjdk:21-jdk-slim: Utilizamos a versão slim do OpenJDK 21, reduzindo significativamente o tamanho da imagem final e eliminando dependências desnecessárias
+
+#### 2. Estrutura de Diretórios
+WORKDIR /app: Define um diretório de trabalho organizado para a aplicação, isolando os arquivos do sistema
+
+#### 3. Cópia Eficiente do Artefato
+COPY build/libs/*.jar app.jar: Copia o JAR gerado pelo build do Gradle com um nome padronizado, facilitando o comando de execução
+
+#### 4. Exposição de Porta
+EXPOSE 8080: Documenta que a aplicação estará ouvindo na porta 8080, padrão do Spring Boot
+
+#### 5. Entrypoint Otimizado
+ENTRYPOINT ["java","-jar","app.jar"]: Configura o comando padrão para execução da aplicação, garantindo inicialização consistente
+
+#### 6. Multi-stage para Azure
+O arquivo é nomeado como Dockerfile.azure, indicando uma configuração específica para deploy na Azure, permitindo diferentes configurações por ambiente
+
 ---
 
 ## 📱 Prints do Funcionamento | Operation Prints
