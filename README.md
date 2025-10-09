@@ -151,11 +151,11 @@ O arquivo é nomeado como Dockerfile.azure, indicando uma configuração especí
 ---
 
 ## 🧠 Tecnologias | Tech Stack
-- 💛 Java 17 + Spring Boot 3
-- 🐬 Oracle Database
-- 🐳 Docker + Docker Compose
-- 💾 Flyway para migrações de banco
-- 🔐 Spring Security + JWT
+- Java 17 + Spring Boot 3
+- Oracle Database
+- Docker + Docker Compose
+- Flyway para migrações de banco
+- Spring Security + JWT
 
 ---
 
