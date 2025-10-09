@@ -12,35 +12,35 @@ Pluralis é um sistema desenvolvido com alma e propósito: promover ambientes co
 **🇧🇷 Inclusão e diversidade corporativa**  
 **🇺🇸 Corporate inclusion and diversity**
 
-- 📊 Relatórios sobre diversidade e presença feminina
-- 📚 Controle de treinamentos inclusivos obrigatórios
-- 🧠 Canal de feedback anônimo para ouvir quem importa
+- Relatórios sobre diversidade e presença feminina
+- Controle de treinamentos inclusivos obrigatórios
+- Canal de feedback anônimo para ouvir quem importa
 
 ---
 
 ### 🚀 Endpoints principais | Main Endpoints
 
-#### 🔐 Autenticação | Authentication
+#### Autenticação | Authentication
 - `POST /auth/register` → Registrar novo usuário | Register new user
 - `POST /auth/login` → Autenticar e obter token JWT | Authenticate and receive JWT
 
-#### 👥 Colaboradores | Employees
+#### Colaboradores | Employees
 - `GET /employees` → Listar todos os colaboradores
 - `POST /employees` → Criar novo colaborador
 
-#### 🎓 Treinamentos | Trainings
+#### Treinamentos | Trainings
 - `GET /trainings` → Listar treinamentos ativos
 - `POST /trainings` → Criar novo treinamento
 
-#### 🏅 Participações | Participation Tracking
+#### Participações | Participation Tracking
 - `GET /participations` → Listar todas as participações
 - `POST /participations` → Registrar participação
 
-#### 💌 Feedback Anônimo | Anonymous Feedback
+#### Feedback Anônimo | Anonymous Feedback
 - `GET /anonymous-feedback` → Ver feedbacks recebidos
 - `POST /anonymous-feedback` → Enviar novo feedback
 
-#### 📄 Relatório ESG | ESG Report
+#### Relatório ESG | ESG Report
 - `GET /inclusion-report` → Consultar relatórios ESG de inclusão
 - `POST /inclusion-report` → Criar novo relatório
 
@@ -65,7 +65,7 @@ docker-compose up --build
 
 ---
 
-## ⚙️ Pipeline CI/CD
+## 🔄 Pipeline CI/CD
 
 ### Ferramenta Utilizada
 
