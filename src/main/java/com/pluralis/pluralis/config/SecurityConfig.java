@@ -24,12 +24,20 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
 
+    private static final String[] SWAGGER_URLS = {
+            "/swagger-ui/**",
+            "/v3/api-docs/**",
+            "/webjars/**",
+            "/error"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(SWAGGER_URLS).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -37,6 +45,7 @@ public class SecurityConfig {
                 .build();
     }
 
+    // Outros Beans (PasswordEncoder, AuthenticationManager, etc.) omitidos...
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -62,5 +71,4 @@ public class SecurityConfig {
                 .authenticationProvider(authenticationProvider())
                 .build();
     }
-
 }
