@@ -67,34 +67,9 @@ docker-compose up --build
 
 ## 🔄 Pipeline CI/CD
 
-### Build e Testes
-![image](https://github.com/user-attachments/assets/e6c2f708-3a12-463d-8781-a00deb5d094e)
-![BB2CCAC3-FF37-4FA7-BC14-9E555C2F47CD](https://github.com/user-attachments/assets/c66f90b0-0832-4a4c-a337-b3cc641631ab)
-
-### Docker Build & Push
-![image (1)](https://github.com/user-attachments/assets/df599107-888c-4ac7-880f-92c6ad1b330e)
-![9E75848B-432D-4165-90FD-27CCC760A9FE](https://github.com/user-attachments/assets/6ced6116-b6a7-42be-9da0-cbec16b107d8)
-
-### Deploy nos Ambientes
-![image (2)](https://github.com/user-attachments/assets/8b6a08a0-b2a9-435d-b886-0ace24a422f4)
-
-## Ambientes
-
-### Ambiente de Staging (Develop)
-
-Inserir print do app rodando em staging
-
-### Ambiente de Produção (Master)
-![image (3)](https://github.com/user-attachments/assets/edc474b3-62fe-40dd-8529-04326ec16186)
-![2BD5BC3B-85D4-4E43-B1DE-C4B65D580A5A](https://github.com/user-attachments/assets/5885dff4-fd1e-4d81-83a4-fe4ab01d4154)
-
-### Ferramenta Utilizada
-
-**GitHub Actions** - Plataforma de CI/CD integrada ao GitHub para automação de workflows.
-
 ### Etapas do Pipeline
 
-#### 1. **Build e Push (Job: build_and_push)**
+### 1. **Build e Push (Job: build_and_push)**
 
 - **Checkout do código:** Clona o repositório
 - **Setup Java 17:** Configura ambiente Java com Temurin
@@ -104,13 +79,13 @@ Inserir print do app rodando em staging
 - **Docker Build:** Constrói a imagem Docker da aplicação
 - **Docker Push:** Envia imagem para Docker Hub com tags por ambiente
 
-#### 2. **Deploy Staging (Job: deploy_staging)**
+### 2. **Deploy Staging (Job: deploy_staging)**
 
 - Executa apenas quando há push na branch `develop`
 - Deploy automático no Azure Web App de staging
 - Utiliza imagem com tag `staging`
 
-#### 3. **Deploy Produção (Job: deploy_prod)**
+### 3. **Deploy Produção (Job: deploy_prod)**
 
 - Executa apenas quando há push na branch `master`
 - Deploy automático no Azure Web App de produção
@@ -168,6 +143,26 @@ O arquivo é nomeado como Dockerfile.azure, indicando uma configuração especí
 ---
 
 ## 📱 Prints do Funcionamento | Operation Prints
+
+### Build e Testes
+![image](https://github.com/user-attachments/assets/e6c2f708-3a12-463d-8781-a00deb5d094e)
+![BB2CCAC3-FF37-4FA7-BC14-9E555C2F47CD](https://github.com/user-attachments/assets/c66f90b0-0832-4a4c-a337-b3cc641631ab)
+
+### Docker Build & Push
+![image (1)](https://github.com/user-attachments/assets/df599107-888c-4ac7-880f-92c6ad1b330e)
+![9E75848B-432D-4165-90FD-27CCC760A9FE](https://github.com/user-attachments/assets/6ced6116-b6a7-42be-9da0-cbec16b107d8)
+
+### Deploy nos Ambientes
+![image (2)](https://github.com/user-attachments/assets/8b6a08a0-b2a9-435d-b886-0ace24a422f4)
+
+## Ambientes
+### Ambiente de Staging (Develop)
+
+Inserir print do app rodando em staging
+
+### Ambiente de Produção (Master)
+![image (3)](https://github.com/user-attachments/assets/edc474b3-62fe-40dd-8529-04326ec16186)
+![2BD5BC3B-85D4-4E43-B1DE-C4B65D580A5A](https://github.com/user-attachments/assets/5885dff4-fd1e-4d81-83a4-fe4ab01d4154)
 
 ---
 
