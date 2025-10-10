@@ -175,6 +175,11 @@ Inserir print do app rodando em staging
 
 ---
 
+## Checklist de Entrega
+![0244f510-0a27-4766-ac0f-fdb46d753663](https://github.com/user-attachments/assets/fc964066-8d33-4ec8-918b-dba3f270da5f)
+
+---
+
 ## 💫 Desenvolvedoras | The Team
 
 ✨ **Francine Maciel de Sá**  
