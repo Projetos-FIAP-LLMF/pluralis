@@ -1,215 +1,136 @@
-name: Pluralis Continuous Delivery Pipeline (QA & Production)
+name: Continuous Delivery (Docker Hub → Azure Web App)
 
 on:
   push:
-    branches: [ develop, main ]
+    branches: [ develop, master ]
 
 env:
-  IMAGE_NAME: pluralis-api
+  IMAGE_NAME: pluralis-app
   REGISTRY: docker.io
-  DOCKER_NAMESPACE: projetos-fiap-llmf
 
 concurrency:
   group: cd-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  tests:
-    name: 1) Unit & Integration Tests
+  test:
+    name: 1) Tests (Gradle Java 17)
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+          cache: 'gradle'
 
-      - name: Gradle permissions
+      - name: Permissão gradlew
         run: chmod +x gradlew
 
-      - name: Run test suite
+      - name: Run tests
         run: ./gradlew clean test --no-daemon
 
-      - name: Tests Summary
-        uses: actions/github-script@v7
-        with:
-          script: |
-            core.summary
-              .addHeading('✅ Test Execution Summary')
-              .addTable([
-                [{data: 'Suite', header: true}, {data: 'Result', header: true}],
-                ['Gradle test', 'Passed']
-              ])
-              .addQuote('All tests finished successfully.')
-              .write()
-
-  build_publish:
-    name: 2) Build & Publish Container Image
-    needs: tests
+  build_push:
+    name: 2) Build & Push Docker Image
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       image_repo: ${{ steps.meta.outputs.IMAGE }}
       sha_tag: ${{ steps.meta.outputs.SHA_TAG }}
       env_tag: ${{ steps.meta.outputs.TAG }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
+          cache: 'gradle'
 
-      - name: Gradle permissions
+      - name: Permissão gradlew
         run: chmod +x gradlew
 
-      - name: Build JAR (skip tests)
+      - name: Build jar (sem testes)
         run: ./gradlew bootJar -x test --no-daemon
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Compute image tags
+      - name: Docker login (Docker Hub)
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Compute tags
         id: meta
         run: |
-          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+          if [ "${GITHUB_REF_NAME}" = "master" ]; then
             echo "TAG=prod" >> $GITHUB_OUTPUT
           else
-            echo "TAG=qa" >> $GITHUB_OUTPUT
+            echo "TAG=staging" >> $GITHUB_OUTPUT
           fi
           echo "SHA_TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          echo "IMAGE=${{ env.REGISTRY }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
 
-          REPO_NAMESPACE=$(echo "${{ env.DOCKER_NAMESPACE }}" | tr '[:upper:]' '[:lower:]')
-          IMAGE_PATH="${{ env.REGISTRY }}/${REPO_NAMESPACE}/${{ env.IMAGE_NAME }}"
-          echo "IMAGE=${IMAGE_PATH}" >> $GITHUB_OUTPUT
-
-          echo "🧱 IMAGE -> ${IMAGE_PATH}"
-          echo "🏷️ TAG -> ${GITHUB_REF_NAME}"
-
-      - name: Build image
+      - name: Build & Push (env tag + SHA)
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Dockerfile
-          push: false
+          push: true
           tags: |
             ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.TAG }}
             ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}
 
-      - name: Publish log
-        run: |
-          echo "Validating container registry endpoint..."
-          echo "Tagging image:"
-          echo " - ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.TAG }}"
-          echo " - ${{ steps.meta.outputs.IMAGE }}:${{ steps.meta.outputs.SHA_TAG }}"
-          echo "Publishing metadata and updating artifact references..."
-          sleep 2
-          echo "Container image references updated successfully."
-
-      - name: Build Summary
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const img = `${{ steps.meta.outputs.IMAGE }}`;
-            const tag = `${{ steps.meta.outputs.TAG }}`;
-            const sha = `${{ steps.meta.outputs.SHA_TAG }}`;
-            core.summary
-              .addHeading('🏗️ Build & Publish Summary')
-              .addTable([
-                [{data: 'Field', header: true}, {data: 'Value', header: true}],
-                ['Image', img],
-                ['Environment Tag', tag],
-                ['Commit Tag', sha]
-              ])
-              .addQuote('Container image prepared and published to the registry reference.')
-              .write()
-
-  deploy_qa:
-    name: 3) Deploy to QA Environment
-    needs: build_publish
+  deploy_staging:
+    name: 3) Deploy to Azure (staging / QA)
+    needs: build_push
     if: github.ref_name == 'develop'
     runs-on: ubuntu-latest
     environment:
-      name: QA
-      url: https://pluralis-qa.azurewebsites.net
+      name: staging
     steps:
-      - name: Resolve image reference
+      - name: Set image name (staging)
         id: img
-        run: echo "FULL=${{ needs.build_publish.outputs.image_repo }}:qa" >> $GITHUB_OUTPUT
+        run: echo "FULL=${{ needs.build_push.outputs.image_repo }}:staging" >> $GITHUB_OUTPUT
 
-      - name: Deployment
-        run: |
-          echo "Validating credentials and environment context..."
-          echo "Target Application: pluralis-qa-webapp"
-          echo "Target Slot: qa"
-          echo "Container Image: ${{ steps.img.outputs.FULL }}"
-          echo "Triggering container update for Azure Web App..."
-          sleep 3
-          echo "Monitoring deployment status..."
-          sleep 2
-          echo "Post-deployment health check completed."
-          echo "Deployment completed successfully."
-
-      - name: Deployment Summary (QA)
-        uses: actions/github-script@v7
+      - name: Deploy to Azure Web App (staging)
+        id: deploy
+        uses: azure/webapps-deploy@v2
         with:
-          script: |
-            core.summary
-              .addHeading('🚀 Deployment Summary — QA')
-              .addTable([
-                [{data: 'Parameter', header: true}, {data: 'Value', header: true}],
-                ['Application', 'pluralis-qa-webapp'],
-                ['Slot', 'qa'],
-                ['Image', `${{ steps.img.outputs.FULL }}`],
-                ['Status', 'Successful']
-              ])
-              .addQuote('Release validated for QA environment.')
-              .write()
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_STG }}
+          slot-name: 'staging'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_STG }}
+          images: ${{ steps.img.outputs.FULL }}
+
+      - name: Output URL
+        run: echo "Staging deployed with image ${{ steps.img.outputs.FULL }}"
 
   deploy_prod:
-    name: 4) Deploy to Production Environment
-    needs: build_publish
-    if: github.ref_name == 'main'
+    name: 4) Deploy to Azure (production)
+    needs: build_push
+    if: github.ref_name == 'master'
     runs-on: ubuntu-latest
     environment:
-      name: Production
-      url: https://pluralis.azurewebsites.net
+      name: production
     steps:
-      - name: Resolve image reference
+      - name: Set image name (prod)
         id: img
-        run: echo "FULL=${{ needs.build_publish.outputs.image_repo }}:prod" >> $GITHUB_OUTPUT
+        run: echo "FULL=${{ needs.build_push.outputs.image_repo }}:prod" >> $GITHUB_OUTPUT
 
-      - name: Deployment
-        run: |
-          echo "Validating credentials and environment context..."
-          echo "Target Application: pluralis-webapp"
-          echo "Target Slot: production"
-          echo "Container Image: ${{ steps.img.outputs.FULL }}"
-          echo "Triggering container update for Azure Web App..."
-          sleep 3
-          echo "Monitoring deployment status..."
-          sleep 2
-          echo "Post-deployment health check completed."
-          echo "Deployment completed successfully."
-
-      - name: Deployment Summary (Production)
-        uses: actions/github-script@v7
+      - name: Deploy to Azure Web App (prod)
+        id: deploy
+        uses: azure/webapps-deploy@v2
         with:
-          script: |
-            core.summary
-              .addHeading('🚀 Deployment Summary — Production')
-              .addTable([
-                [{data: 'Parameter', header: true}, {data: 'Value', header: true}],
-                ['Application', 'pluralis-webapp'],
-                ['Slot', 'production'],
-                ['Image', `${{ steps.img.outputs.FULL }}`],
-                ['Status', 'Successful']
-              ])
-              .addQuote('Release validated for Production environment.')
-              .write()
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME_PROD }}
+          slot-name: 'production'
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_PROD }}
+          images: ${{ steps.img.outputs.FULL }}
+
+      - name: Output URL
+        run: echo "Prod deployed with image ${{ steps.img.outputs.FULL }}"
