@@ -7,6 +7,7 @@ on:
 env:
   IMAGE_NAME: pluralis-api
   REGISTRY: docker.io
+  DOCKER_NAMESPACE: projetos-fiap-llmf
 
 concurrency:
   group: cd-${{ github.ref_name }}
@@ -83,7 +84,13 @@ jobs:
             echo "TAG=qa" >> $GITHUB_OUTPUT
           fi
           echo "SHA_TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
-          echo "IMAGE=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}" >> $GITHUB_OUTPUT
+
+          REPO_NAMESPACE=$(echo "${{ env.DOCKER_NAMESPACE }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE_PATH="${{ env.REGISTRY }}/${REPO_NAMESPACE}/${{ env.IMAGE_NAME }}"
+          echo "IMAGE=${IMAGE_PATH}" >> $GITHUB_OUTPUT
+
+          echo "🧱 IMAGE -> ${IMAGE_PATH}"
+          echo "🏷️ TAG -> ${GITHUB_REF_NAME}"
 
       - name: Build image
         uses: docker/build-push-action@v6
