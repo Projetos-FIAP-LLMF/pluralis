@@ -157,11 +157,9 @@ O arquivo é nomeado como Dockerfile.azure, indicando uma configuração especí
 
 ## Ambientes
 ### Ambiente de Staging (Develop)
-
-Inserir print do app rodando em staging
+<img width="1076" height="433" alt="baixados" src="https://github.com/user-attachments/assets/c79074b1-b539-49f3-bf8c-88251ed4dfdc" />
 
 ### Ambiente de Produção (Master)
-![image (3)](https://github.com/user-attachments/assets/edc474b3-62fe-40dd-8529-04326ec16186)
 ![2BD5BC3B-85D4-4E43-B1DE-C4B65D580A5A](https://github.com/user-attachments/assets/5885dff4-fd1e-4d81-83a4-fe4ab01d4154)
 
 ---
