@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "properties": {
+    "timestamp": {},
+    "status": { "type": "integer" },
+    "error": { "type": "string" },
+    "path": { "type": "string" },
+    "errors": { "type": "array" }
+  },
+  "additionalProperties": true
+}

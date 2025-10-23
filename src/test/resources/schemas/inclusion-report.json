@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["totalEmployees", "totalTrainingParticipations"],
+  "properties": {
+    "totalEmployees": { "type": "integer", "minimum": 0 },
+    "totalTrainingParticipations": { "type": "integer", "minimum": 0 }
+  },
+  "additionalProperties": true
+}

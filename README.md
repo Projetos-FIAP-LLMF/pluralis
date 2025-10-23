@@ -146,16 +146,104 @@ O arquivo é nomeado como Dockerfile.azure, indicando uma configuração especí
 
 ---
 
-## 📱 Prints do Funcionamento | Operation Prints
+## 🧪 Testes BDD e Validação de APIs
+
+### 📘 Linguagem Gherkin
+
+Foram escritos **cenários de teste BDD** utilizando a linguagem **Gherkin**, garantindo que o comportamento das principais funcionalidades da aplicação seja validado em cenários **positivos** (happy path) e **negativos** (falhas).
+
+Os testes foram implementados com **Cucumber + JUnit**, simulando requisições HTTP reais e validando status code, corpo JSON e contratos via **JSON Schema**.
 
 ---
 
-## 🧠 Tecnologias | Tech Stack
-- Java 17 + Spring Boot 3
-- Oracle Database
-- Docker + Docker Compose
-- Flyway para migrações de banco
-- Spring Security + JWT
+### ✅ **Cenários Implementados**
+
+#### 1️⃣ Autenticação
+```gherkin
+@happy
+Scenario: Registrar novo usuário e autenticar com sucesso
+  Given a API base url is "http://localhost:8080"
+  When I POST "/auth/register" with json:
+    """
+    { "username": "user_teste", "password": "123456" }
+    """
+  Then the response status should be 200
+  When I POST "/auth/login" with json:
+    """
+    { "username": "user_teste", "password": "123456" }
+    """
+  Then the response status should be 200
+  And the response body at "$.token" should contain "."
+```
+
+#### 2️⃣ Cadastro de Colaboradores
+```gherkin
+@happy
+Scenario: Cadastrar colaborador com sucesso
+  Given a valid JWT token
+  When I POST "/employees" with json:
+    """
+    {
+      "name": "Maria",
+      "email": "maria@empresa.com",
+      "gender": "Feminino",
+      "ethnicity": "Parda",
+      "neurodivergent": false,
+      "lgbtqia": true
+    }
+    """
+  Then the response status should be 200
+  And the response json should match schema "schemas/employee-created.json"
+```
+
+#### 3️⃣ Feedback Anônimo
+```gherkin
+@negativo
+Scenario: Impedir envio de feedback muito curto
+  Given a valid JWT token
+  When I POST "/anonymous-feedback" with json:
+    """
+    { "message": "Oi" }
+    """
+  Then the response status should be 400
+  And the response json should match schema "schemas/error-validation.json"
+```
+
+---
+
+### ⚙️ Execução dos Testes
+
+Os testes podem ser executados **localmente ou em pipeline CI/CD**.
+
+#### Localmente:
+```bash
+# Subir containers
+docker-compose up -d
+
+# Executar testes
+./gradle -q -Dtest=bdd.RunCucumberIT test
+```
+
+#### CI/CD (GitHub Actions)
+Durante o pipeline, os testes são executados automaticamente na etapa:
+```yaml
+- name: Run tests
+  run: ./gradlew clean test --no-daemon
+```
+
+---
+
+### 🧩 Validações Incluídas
+
+- **Status Code:** 200, 400, 401, 403  
+- **Corpo JSON:** validação com JsonPath  
+- **Contrato:** validação com JSON Schema  
+- **BDD:** escrita natural Gherkin com Cucumber  
+- **Cobertura:** `/auth`, `/employees`, `/trainings`, `/feedback`, `/inclusion-report`
+
+---
+
+💬 *Esses testes garantem que as principais rotas da aplicação respondem de forma consistente, segura e validada de ponta a ponta, tanto em execuções locais quanto no pipeline CI/CD.*
 
 ---
 

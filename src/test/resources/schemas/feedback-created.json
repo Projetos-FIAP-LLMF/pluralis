@@ -1,0 +1,9 @@
+{
+  "type": "object",
+  "required": ["id", "message"],
+  "properties": {
+    "id": { "type": "integer" },
+    "message": { "type": "string", "minLength": 5 }
+  },
+  "additionalProperties": true
+}

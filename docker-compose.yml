@@ -13,18 +13,23 @@ services:
       APP_USER_PASSWORD: ${APP_USER_PASSWORD}
     volumes:
       - oracle-data:/opt/oracle/oradata
+    # healthcheck opcional (testa apenas a porta)
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/1521"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
   pluralis-app:
-    image: ${REGISTRY}/pluralis-app:${TAG}
+    build:
+      context: .
     container_name: pluralis-app
     depends_on:
-      oracle-db:
-        condition: service_started
+      - oracle-db
     ports:
       - "8080:8080"
     env_file: .env
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
 
 volumes:
   oracle-data:

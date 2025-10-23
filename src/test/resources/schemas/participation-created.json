@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["id", "employee", "training", "completed"],
+  "properties": {
+    "id": { "type": "integer" },
+    "employee": { "type": "object" },
+    "training": { "type": "object" },
+    "completed": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}

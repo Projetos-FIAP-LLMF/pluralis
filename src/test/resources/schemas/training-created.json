@@ -1,0 +1,11 @@
+{
+  "type": "object",
+  "required": ["id", "name", "trainingDate", "mandatory"],
+  "properties": {
+    "id": { "type": "integer" },
+    "name": { "type": "string" },
+    "trainingDate": { "type": "string" },
+    "mandatory": { "type": "boolean" }
+  },
+  "additionalProperties": true
+}
