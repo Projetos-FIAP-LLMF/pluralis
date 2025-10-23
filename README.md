@@ -166,18 +166,22 @@ O arquivo é nomeado como Dockerfile.azure, indicando uma configuração especí
 
 ## 📱 Prints dos Testes
 
-docker-compose up --build com serviços iniciados.
+`docker-compose up --build` com serviços iniciados.
+
 ![699827b4-7ec8-4a22-a4bf-810217bbbe60](https://github.com/user-attachments/assets/36485767-0111-4b2a-9689-cb88cae938e2)
 
-docker ps mostrando oracle-db e pluralis-app.
+`docker ps` mostrando `oracle-db` e `pluralis-app`.
+
 ![74dbf7f1-c736-456e-8743-c05edd84cb56](https://github.com/user-attachments/assets/ade5f59f-71c3-4bea-b66f-ee7f7bfd72d1)
 
-Pasta schemas/ + 1~2 arquivos abertos.
+Pasta `schemas/` + 1~2 arquivos abertos.
+
 ![76ebac8f-a96e-48dd-8112-c592133ced5d](https://github.com/user-attachments/assets/4311a1a0-dca5-4cd3-9ab7-0e321238f7f3)
 ![79d0808c-bcd4-4cd0-b733-014f203c1536](https://github.com/user-attachments/assets/ebf69a8b-7649-44bb-b4be-9511b5ef660e)
 ![ae0cc876-82d8-4803-bf2c-701a4e481bda](https://github.com/user-attachments/assets/814b9521-9fb8-44ff-b6bd-53d34596bd14)
 
 Relatório HTML do JUnit (index.html).
+
 ![bc5be9fa-7546-4861-b651-d66a08a72513](https://github.com/user-attachments/assets/e9b1c39b-9bc6-48e1-abb8-1ea053b0bca1)
 ![0583dcf3-88e1-4891-8b85-732649a61c81](https://github.com/user-attachments/assets/2155dd64-afce-4c8a-a234-abe941904342)
 
